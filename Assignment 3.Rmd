@@ -1,0 +1,75 @@
+---
+title: "Assignment 3"
+author: "Ganapathy Subramanian"
+date: "11/25/2021"
+output: html_document
+---
+```{r setup, include = FALSE}
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+```
+```{r, include = TRUE}
+url <- "/Users/ganap/OneDrive/Desktop/Gana/Data Analytics/Fall 2021/ANA 515/StormEvents_details-ftp_v1.0_d1994_c20210803 (2).csv.gz"
+originalgz <- gzfile(url, 'rt')
+convertedcsv <- read.csv(originalgz)
+```
+
+```{r,include = TRUE}
+
+convertedcsv_subset <- subset(convertedcsv, select = c(BEGIN_DATE_TIME, END_DATE_TIME, EPISODE_ID, EVENT_ID, STATE, CZ_TYPE, STATE_FIPS, CZ_NAME, CZ_FIPS, EVENT_TYPE, SOURCE, BEGIN_LAT, END_LAT, BEGIN_LON, END_LON))
+```
+
+```{r, include=TRUE}
+convertedcsv_subset[['BEGIN_DATE_TIME']] <- dmy_hms(convertedcsv_subset[['BEGIN_DATE_TIME']])
+convertedcsv_subset[['END_DATE_TIME']] <- dmy_hms(convertedcsv_subset[['END_DATE_TIME']])
+```
+
+```{r,include = TRUE}
+convertedcsv_subset$STATE = str_to_title(convertedcsv_subset$STATE, locale = "en")
+convertedcsv_subset$CZ_NAME = str_to_title(convertedcsv_subset$CZ_NAME, locale = "en")
+print(convertedcsv_subset)
+```
+
+```{r,include = TRUE}
+convertedcsv_limit <- convertedcsv_subset %>% filter(CZ_TYPE == "C")
+
+convertedcsv_rcz <- subset(convertedcsv_limit, select = -c(CZ_TYPE))
+```
+
+```{r,include = TRUE}
+convertedcsv_rcz$STATE_FIPS <- paste0("0", convertedcsv_rcz$STATE_FIPS)
+convertedcsv_rcz$CZ_FIPS <- paste0("0", convertedcsv_rcz$CZ_FIPS)
+
+convertedcsv_rcz$CONCAT_FIPS <- paste(convertedcsv_rcz$STATE_FIPS, convertedcsv_rcz$CZ_FIPS)
+```
+
+```{r,include = TRUE}
+convertedcsv_lower <- convertedcsv_rcz %>% rename_all(tolower)
+```
+
+```{r,include = TRUE}
+dataframe_state <- data.frame("State_Name" = state.name, "State_Area" = state.area, "State_Region" = state.region)
+colnames(dataframe_state)
+```
+
+```{r,include = TRUE}
+convertedcsv_freq <- data.frame(table(convertedcsv_lower$state))
+
+convertedcsv_freq <- rename(convertedcsv_freq,c("Name"="Var1"))
+```
+```{r,include = TRUE}
+dataframe_state_lower <- dataframe_state %>% rename_all(tolower)
+print(dataframe_state_lower)
+print(convertedcsv_freq)
+combined_states <- merge(x=convertedcsv_freq,y=dataframe_state_lower,by.x="Name",by.y="state_name")
+head(combined_states)
+```
+
+```{r, include=TRUE}
+ggplot(combined_states, aes(x=state_area, y=Freq)) +
+geom_point(aes(color = state_region)) +
+labs(x="Land Area (square miles",
+y="# of storm events in 1994")
+```
